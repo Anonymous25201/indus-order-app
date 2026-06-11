@@ -94,12 +94,15 @@
                     json.forEach((row) => {
                         // Ensure row has at least 2 columns
                         if (row && row.length >= 2) {
-                            const alias = String(row[0]).trim();
+                            const originalAlias = String(row[0]).trim();
+                            // Fix: Strip slash in Excel too, and UPPERCASE for robust matching
+                            const lookupKey = originalAlias.split('/')[0].trim().toUpperCase();
                             const name = String(row[1]).trim();
                             
                             // Skip header row if it contains the word "alias"
-                            if (alias && alias.toLowerCase() !== 'alias') {
-                                newDb[alias] = { fullName: name, alias: alias };
+                            if (lookupKey && lookupKey.toLowerCase() !== 'alias') {
+                                // Store under the UPPERCASE stripped key
+                                newDb[lookupKey] = { fullName: name, alias: originalAlias };
                                 count++;
                             }
                         }
@@ -134,8 +137,12 @@
             // Logic to split the alias from the scanned code
             // Ex: "N-176438/12345" -> Splits by "/" -> Gets "N-176438"
             const extractedAlias = decodedText.split('/')[0].trim();
+            
+            // Fix: Convert to UPPERCASE before checking to guarantee it matches the DB
+            const lookupKey = extractedAlias.toUpperCase();
 
-            const productInfo = productDatabase[extractedAlias] || {
+            // Look it up using the normalized key
+            const productInfo = productDatabase[lookupKey] || {
               fullName: `Unknown (${extractedAlias})`,
               alias: extractedAlias,
               isUnknown: true
@@ -447,15 +454,15 @@
                               <table className="w-full text-left text-sm">
                                 <thead className="bg-slate-100 sticky top-0">
                                   <tr>
-                                    <th className="p-3 font-medium text-slate-600">Alias</th>
+                                    <th className="p-3 font-medium text-slate-600">Alias Lookup Key</th>
                                     <th className="p-3 font-medium text-slate-600">Main Product Name</th>
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-200">
                                   {/* Showing only first 50 as preview to keep UI fast */}
-                                  {Object.values(productDatabase).slice(0, 50).map((prod, idx) => (
+                                  {Object.entries(productDatabase).slice(0, 50).map(([key, prod], idx) => (
                                     <tr key={idx}>
-                                      <td className="p-3 text-slate-700 font-medium">{prod.alias}</td>
+                                      <td className="p-3 text-slate-700 font-medium">{key}</td>
                                       <td className="p-3 text-slate-600">{prod.fullName}</td>
                                     </tr>
                                   ))}
